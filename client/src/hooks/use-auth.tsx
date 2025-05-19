@@ -34,9 +34,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     data: user,
     error,
     isLoading,
+    refetch
   } = useQuery<SelectUser | null, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    staleTime: 0,
+    retry: false
   });
 
   const loginMutation = useMutation({
@@ -46,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
+      refetch();
       toast({
         title: "Login successful",
         description: `Welcome back, ${user.username}!`,
@@ -67,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
+      refetch();
       toast({
         title: "Registration successful",
         description: "Your account has been created!",
