@@ -36,6 +36,10 @@ export const profiles = pgTable("profiles", {
   location: text("location"),
   latitude: text("latitude"),
   longitude: text("longitude"),
+  lookingFor: text("looking_for").default("casual"),
+  maxDistance: integer("max_distance").default(25),
+  ageRangeMin: integer("age_range_min").default(18),
+  ageRangeMax: integer("age_range_max").default(35),
   score: integer("score").default(70).notNull(), // Score out of 100
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -54,7 +58,22 @@ export const profilesRelations = relations(profiles, ({ one, many }) => ({
 }));
 
 export const insertProfileSchema = createInsertSchema(profiles)
-  .omit({ id: true, userId: true, score: true, createdAt: true, updatedAt: true });
+  .omit({ id: true, userId: true, score: true, createdAt: true, updatedAt: true })
+  .extend({
+    birthdate: z.coerce.date()
+      .refine((date) => {
+        // Calculate age
+        const today = new Date();
+        const birthDate = new Date(date);
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        // Must be at least 18 years old
+        return age >= 18;
+      }, { message: "You must be at least 18 years old to use this app" }),
+  });
 
 export type InsertProfile = z.infer<typeof insertProfileSchema>;
 export type Profile = typeof profiles.$inferSelect;

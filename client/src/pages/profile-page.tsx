@@ -40,10 +40,16 @@ const profileSchema = z.object({
     
     return age >= 18;
   }, "You must be at least 18 years old"),
-  bio: z.string().optional(),
+  bio: z.string().max(500, "Bio cannot exceed 500 characters").optional(),
   gender: z.enum(["male", "female", "non-binary", "other"]),
   interestedIn: z.enum(["male", "female", "non-binary", "other", "everyone"]),
   location: z.string().optional(),
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
+  lookingFor: z.enum(["casual", "relationship", "friendship", "marriage"]).default("casual"),
+  maxDistance: z.number().min(1).max(100).default(25),
+  ageRangeMin: z.number().min(18).max(100).default(18),
+  ageRangeMax: z.number().min(18).max(100).default(35),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -62,6 +68,7 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
   const [isEditingPhotos, setIsEditingPhotos] = useState(false);
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
 
   // Fetch user profile
   const { 
@@ -82,6 +89,12 @@ export default function ProfilePage() {
       gender: "male",
       interestedIn: "everyone",
       location: "",
+      latitude: "",
+      longitude: "",
+      lookingFor: "casual",
+      maxDistance: 25,
+      ageRangeMin: 18,
+      ageRangeMax: 35,
     },
   });
 
@@ -486,17 +499,114 @@ export default function ProfilePage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Location</FormLabel>
-                          <FormControl>
-                            <Input 
-                              {...field} 
-                              placeholder="City, Country"
-                              value={field.value || ""}
-                            />
-                          </FormControl>
+                          <div className="flex gap-2">
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                placeholder="City, Country"
+                                value={field.value || ""}
+                              />
+                            </FormControl>
+                            <Button 
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setIsFetchingLocation(true);
+                                if (navigator.geolocation) {
+                                  navigator.geolocation.getCurrentPosition(
+                                    async (position) => {
+                                      try {
+                                        // Update form with lat/long
+                                        form.setValue("latitude", position.coords.latitude.toString());
+                                        form.setValue("longitude", position.coords.longitude.toString());
+                                        
+                                        // Try to get location name from coordinates
+                                        const response = await fetch(
+                                          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}&zoom=10`
+                                        );
+                                        const data = await response.json();
+                                        if (data && data.display_name) {
+                                          const locationParts = data.display_name.split(', ');
+                                          const locationName = [
+                                            locationParts[0], // city/town
+                                            locationParts[locationParts.length - 1] // country
+                                          ].join(', ');
+                                          form.setValue("location", locationName);
+                                        }
+                                      } catch (error) {
+                                        console.error("Error fetching location", error);
+                                        toast({
+                                          title: "Location error",
+                                          description: "Could not determine your location name",
+                                          variant: "destructive"
+                                        });
+                                      } finally {
+                                        setIsFetchingLocation(false);
+                                      }
+                                    },
+                                    (error) => {
+                                      console.error("Geolocation error", error);
+                                      toast({
+                                        title: "Location error",
+                                        description: "Could not access your location",
+                                        variant: "destructive"
+                                      });
+                                      setIsFetchingLocation(false);
+                                    }
+                                  );
+                                } else {
+                                  toast({
+                                    title: "Location not supported",
+                                    description: "Your browser doesn't support geolocation",
+                                    variant: "destructive"
+                                  });
+                                  setIsFetchingLocation(false);
+                                }
+                              }}
+                            >
+                              {isFetchingLocation ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-map-pin">
+                                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                                  <circle cx="12" cy="10" r="3" />
+                                </svg>
+                              )}
+                            </Button>
+                          </div>
+                          <FormDescription>
+                            Click the pin icon to use your current location
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                    
+                    <div className="hidden">
+                      <FormField
+                        control={form.control}
+                        name="latitude"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="longitude"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                     
                     <Button 
                       type="submit" 
