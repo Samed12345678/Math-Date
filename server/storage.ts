@@ -349,15 +349,37 @@ export class DatabaseStorage implements IStorage {
     await this.updateScore(dislikedId, false);
   }
 
+  // Helper method to clean up expired matches (no activity in 24 hours)
+  async cleanupExpiredMatches(): Promise<void> {
+    const yesterday = new Date();
+    yesterday.setHours(yesterday.getHours() - 24);
+    
+    // Find matches with no activity in the last 24 hours
+    const expiredMatches = await db
+      .select()
+      .from(matches)
+      .where(lt(matches.lastMessageAt, yesterday));
+      
+    // Delete each expired match
+    for (const match of expiredMatches) {
+      await db.delete(matches).where(eq(matches.id, match.id));
+      console.log(`Deleted expired match #${match.id} - no activity for 24+ hours`);
+    }
+  }
+
   async getMatches(profileId: number): Promise<any[]> {
-    // Get all matches for this profile
+    // First clean up any expired matches (no messages in 24 hours)
+    await this.cleanupExpiredMatches();
+    
+    // Get all matches for this profile (limited to 5)
     const userMatches = await db
       .select()
       .from(matches)
       .where(or(
         eq(matches.profileId1, profileId),
         eq(matches.profileId2, profileId)
-      ));
+      ))
+      .limit(5); // Limit to maximum 5 matches per user
     
     if (userMatches.length === 0) {
       return [];
@@ -482,6 +504,12 @@ export class DatabaseStorage implements IStorage {
       .insert(messages)
       .values(message)
       .returning();
+    
+    // Update the lastMessageAt field in the match to prevent expiration
+    await db
+      .update(matches)
+      .set({ lastMessageAt: new Date() })
+      .where(eq(matches.id, message.matchId));
     
     return newMessage;
   }
