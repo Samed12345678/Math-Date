@@ -5,6 +5,14 @@ import { setupAuth } from "./auth";
 import { z } from "zod";
 import { insertProfileSchema, insertPhotoSchema, insertMessageSchema } from "@shared/schema";
 import schedule from "node-schedule";
+import { 
+  registerAnalyticsRoutes, 
+  trackUserLogin,
+  trackSwipeAction,
+  trackMatchCreation,
+  trackMessageSent,
+  recordAlgorithmMetrics
+} from "./analytics";
 
 // Daily credit refresh job at midnight
 const refreshCreditsJob = schedule.scheduleJob("0 0 * * *", async () => {
@@ -20,6 +28,15 @@ const refreshCreditsJob = schedule.scheduleJob("0 0 * * *", async () => {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
+  
+  // Set up analytics routes
+  registerAnalyticsRoutes(app);
+  
+  // Schedule daily algorithm metrics recording at 1 AM
+  schedule.scheduleJob('0 1 * * *', async () => {
+    console.log('Running daily algorithm metrics job');
+    await recordAlgorithmMetrics();
+  });
 
   // Helper function to check if user is authenticated
   const isAuthenticated = (req: Request, res: Response, next: Function) => {
@@ -254,6 +271,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Like the profile
       const result = await storage.likeProfile(profile.id, likedId);
       
+      // Track analytics: user liked a profile
+      trackSwipeAction(req.user!.id, true);
+      
+      // If it's a match, track that too
+      if (result.isMatch) {
+        trackMatchCreation(req.user!.id);
+      }
+      
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -271,6 +296,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Dislike doesn't use credits
       await storage.dislikeProfile(profile.id, dislikedId);
+      
+      // Track analytics: user disliked a profile
+      trackSwipeAction(req.user!.id, false);
       
       res.json({ message: "Profile disliked" });
     } catch (error: any) {
@@ -331,6 +359,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Send message
       const message = await storage.sendMessage(messageData);
+      
+      // Track analytics: user sent a message
+      trackMessageSent(req.user!.id);
+      
       res.status(201).json(message);
     } catch (error: any) {
       if (error.name === "ZodError") {

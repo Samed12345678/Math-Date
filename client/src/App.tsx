@@ -8,6 +8,7 @@ import AuthPage from "@/pages/auth-page";
 import MatchesPage from "@/pages/matches-page";
 import MessagesPage from "@/pages/messages-page";
 import ProfilePage from "@/pages/profile-page";
+import AnalyticsPage from "@/pages/analytics-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from "next-themes";
 import { useAuth } from "@/hooks/use-auth";
@@ -33,6 +34,7 @@ function Router() {
         {() => <MessagesPage />}
       </Route>
       <ProtectedRoute path="/profile" component={ProfilePage} />
+      <ProtectedRoute path="/analytics" component={AnalyticsPage} />
       <Route component={NotFound} />
     </Switch>
   );

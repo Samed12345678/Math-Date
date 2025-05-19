@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, uuid, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, uuid, pgEnum, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -222,3 +222,37 @@ export const creditsRelations = relations(credits, ({ one }) => ({
 }));
 
 export type Credit = typeof credits.$inferSelect;
+
+// Analytics schemas
+export const userMetrics = pgTable("user_metrics", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  loginTime: timestamp("login_time").defaultNow().notNull(),
+  sessionDuration: integer("session_duration"), // in seconds
+  swipesCount: integer("swipes_count").default(0),
+  likesCount: integer("likes_count").default(0),
+  dislikesCount: integer("dislikes_count").default(0),
+  matchesCount: integer("matches_count").default(0),
+  messagesCount: integer("messages_count").default(0),
+  date: timestamp("date").defaultNow().notNull(),
+});
+
+export const algorithmMetrics = pgTable("algorithm_metrics", {
+  id: serial("id").primaryKey(),
+  dateRecorded: timestamp("date_recorded").defaultNow().notNull(),
+  averageScoreChange: text("average_score_change"),
+  matchRate: text("match_rate"), // % of likes that result in matches
+  averageResponseTime: integer("average_response_time"), // average time to respond to matches in seconds
+  userRetention: text("user_retention"), // % of users who return within 7 days
+  averageSessionLength: integer("average_session_length"), // average session length in seconds
+});
+
+export const userFeedback = pgTable("user_feedback", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  matchQualityRating: integer("match_quality_rating"), // 1-5 rating of match quality
+  algorithmFairnessRating: integer("algorithm_fairness_rating"), // 1-5 rating of perceived fairness
+  generalSatisfaction: integer("general_satisfaction"), // 1-5 rating of overall satisfaction
+  feedbackText: text("feedback_text"),
+  dateSubmitted: timestamp("date_submitted").defaultNow().notNull(),
+});
