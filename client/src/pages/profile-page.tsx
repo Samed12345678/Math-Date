@@ -13,6 +13,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import FeedbackForm from "@/components/feedback-form";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { 
   Select, 
@@ -624,13 +625,20 @@ export default function ProfilePage() {
                 
                 <Separator className="my-6" />
                 
-                <Button 
-                  variant="outline" 
-                  className="w-full text-destructive"
-                  onClick={handleLogout}
-                >
-                  Logout
-                </Button>
+                <div className="flex flex-col gap-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-medium">Help us improve</h3>
+                    <FeedbackForm />
+                  </div>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="w-full text-destructive"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </>
