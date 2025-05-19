@@ -143,6 +143,7 @@ export const matches = pgTable("matches", {
   profileId1: integer("profile_id_1").references(() => profiles.id).notNull(),
   profileId2: integer("profile_id_2").references(() => profiles.id).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastMessageAt: timestamp("last_message_at").defaultNow().notNull(),
 });
 
 export const matchesRelations = relations(matches, ({ one, many }) => ({

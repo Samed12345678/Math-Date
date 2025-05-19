@@ -278,7 +278,7 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async likeProfile(likerId: number, likedId: number): Promise<{ isMatch: boolean, match?: Match }> {
+  async likeProfile(likerId: number, likedId: number): Promise<{ isMatch: boolean, match?: Match, maxMatchesReached?: boolean }> {
     // Add the like
     await db.insert(likes).values({
       likerId,
@@ -298,10 +298,37 @@ export class DatabaseStorage implements IStorage {
       ));
     
     if (mutualLike) {
+      // Check if liker already has 5 matches
+      const likerMatches = await db
+        .select()
+        .from(matches)
+        .where(or(
+          eq(matches.profileId1, likerId),
+          eq(matches.profileId2, likerId)
+        ));
+      
+      if (likerMatches.length >= 5) {
+        return { isMatch: true, maxMatchesReached: true };
+      }
+      
+      // Check if liked already has 5 matches
+      const likedMatches = await db
+        .select()
+        .from(matches)
+        .where(or(
+          eq(matches.profileId1, likedId),
+          eq(matches.profileId2, likedId)
+        ));
+      
+      if (likedMatches.length >= 5) {
+        return { isMatch: true, maxMatchesReached: true };
+      }
+      
       // Create a match
       const [newMatch] = await db.insert(matches).values({
         profileId1: likerId,
         profileId2: likedId,
+        lastMessageAt: new Date(),
       }).returning();
       
       return { isMatch: true, match: newMatch };
