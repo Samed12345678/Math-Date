@@ -20,22 +20,22 @@ export default function MessagesPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch user profile
-  const { data: myProfile, isLoading: profileLoading } = useQuery({
+  const { data: myProfile, isLoading: profileLoading } = useQuery<any>({
     queryKey: ["/api/profiles/me"],
   });
 
   // Fetch matches
-  const { data: matches, isLoading: matchesLoading } = useQuery({
+  const { data: matches = [], isLoading: matchesLoading } = useQuery<any[]>({
     queryKey: ["/api/matches"],
     enabled: !!myProfile,
   });
 
   // Fetch messages for selected match
   const { 
-    data: messages, 
+    data: messages = [], 
     isLoading: messagesLoading,
     refetch: refetchMessages
-  } = useQuery({
+  } = useQuery<any[]>({
     queryKey: ["/api/matches", matchId, "messages"],
     enabled: !!matchId,
   });
@@ -98,7 +98,16 @@ export default function MessagesPage() {
   if (!matchId) {
     // If no match selected, show matches list
     navigate("/matches");
-    return null;
+    return (
+      <div className="min-h-screen flex flex-col">
+        <TopBar credits={myProfile?.credits?.amount || 0} />
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+          <p className="text-muted-foreground">Redirecting to matches...</p>
+        </div>
+        <NavigationBar active="matches" />
+      </div>
+    );
   }
 
   if (profileLoading || matchesLoading) {
@@ -157,9 +166,9 @@ export default function MessagesPage() {
         ) : (
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4">
             <ChatWindow 
-              messages={messages || []} 
-              currentUserId={myProfile?.id} 
-              matchProfile={currentMatch?.profile}
+              messages={messages as any[]} 
+              currentUserId={myProfile?.id || 0} 
+              matchProfile={currentMatch?.profile || undefined}
             />
           </div>
         )}

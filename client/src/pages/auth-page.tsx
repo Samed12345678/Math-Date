@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Flame, Heart } from "lucide-react";
+import { Flame, Heart, Loader2 } from "lucide-react";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),

@@ -29,9 +29,11 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       <ProtectedRoute path="/" component={HomePage} />
       <ProtectedRoute path="/matches" component={MatchesPage} />
-      <ProtectedRoute path="/messages/:matchId?" component={MessagesPage} />
+      <Route path="/messages/:matchId?">
+        {() => <MessagesPage />}
+      </Route>
       <ProtectedRoute path="/profile" component={ProfilePage} />
-      <Route path="*" component={() => <NotFound />} />
+      <Route component={NotFound} />
     </Switch>
   );
 }
